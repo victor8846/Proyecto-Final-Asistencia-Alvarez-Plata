@@ -8,13 +8,15 @@ use Illuminate\Http\Request;
 class ApiKeyMiddleware
 {
     public function handle(Request $request, Closure $next)
-    {
-        $apiKey = $request->header('X_API_KEY');
+{
+    $apiKey = $request->header('X-API-KEY');
+    \Log::info('API KEY recibida: ' . $apiKey);
 
-        if ($apiKey !== 'INCOS2025') {
-            return response()->json(['error' => 'Unauthorized - API Key inválida'], 401);
-        }
+    if ($apiKey !== env('API_KEY')) {
+    return response()->json(['error' => 'Unauthorized - API Key inválida'], 401);
+}
 
-        return $next($request);
-    }
+    return $next($request);
+}
+
 }

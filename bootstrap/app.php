@@ -18,7 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // Alias para CheckRole middleware
         $middleware->alias([
             'role' => CheckRole::class,
-            'api.key' => ApiKeyMiddleware::class,  // Agrego aquí el alias para api.key
+            'api.key' => \App\Http\Middleware\ApiKeyMiddleware::class,
         ]);
 
         // Middleware global para CORS

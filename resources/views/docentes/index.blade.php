@@ -48,7 +48,7 @@
             Swal.fire({
                 icon: 'success',
                 title: '¡Éxito!',
-                text: '{{ session('success') }}',
+               text: "{{ session('success') }}", 
                 confirmButtonColor: '#3085d6'
             });
         });
@@ -61,26 +61,13 @@
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
-                text: '{{ session('error') }}',
+                text: "{{ session('error') }}",
                 confirmButtonColor: '#d33'
             });
         });
     </script>
 @endif
 
-
-@if(session('error'))
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: '{{ session('error') }}',
-                confirmButtonColor: '#d33'
-            });
-        });
-    </script>
-@endif
 
 
     <table class="table table-bordered table-hover">

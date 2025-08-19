@@ -2,13 +2,15 @@
 
 @section('title', 'Crear Estudiante')
 
-@section('content_header')
-    <h1>Nuevo Estudiante</h1>
-@stop
-
 @section('content')
+<div class="container">
+    <h1>Nuevo Estudiante</h1>
     <form action="{{ route('estudiantes.store') }}" method="POST">
+        @csrf
         @include('estudiantes.form')
         <button type="submit" class="btn btn-primary mt-2">Guardar</button>
+        <a href="{{ route('estudiantes.index') }}" class="btn btn-secondary">Cancelar</a>
     </form>
-@stop
+</div>
+@endsection
+

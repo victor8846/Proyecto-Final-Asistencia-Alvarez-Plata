@@ -22,11 +22,22 @@
     <input type="text" id="ci" name="ci" class="form-control" 
         value="{{ old('ci', $docente->ci ?? '') }}" required>
 </div>
-<!-- UID NFC -->
+
+<!-- UID NFC con botón -->
 <div class="form-group">
     <label for="uid_nfc">UID NFC</label>
-    <input type="text" name="uid_nfc" class="form-control"
-        value="{{ old('uid_nfc', $docente->uid_nfc ?? '') }}">
+    <div class="input-group">
+        <input type="text" name="uid_nfc" id="uid_nfc" class="form-control"
+            value="{{ old('uid_nfc', $docente->uid_nfc ?? '') }}" readonly>
+        <div class="input-group-append">
+            <button type="button" class="btn btn-primary" id="btn-obtener-uid">
+                Registrar UID NFC
+            </button>
+        </div>
+    </div>
+    <small class="form-text text-muted">
+        Presione el botón y pase la tarjeta por el lector.
+    </small>
 </div>
 
 <div class="mb-3">
@@ -36,24 +47,44 @@
 </div>
 
 <!-- Select de Carrera -->
-        <div class="form-group">
-            <label for="carrera_id">Carrera</label>
-            <select name="carrera_id" id="carrera_id" class="form-control" required>
-                <option value="">Seleccione una carrera</option>
-                @foreach($carreras as $carrera)
-                    <option value="{{ $carrera->id }}">{{ $carrera->nombre }}</option>
-                @endforeach
-            </select>
-        </div>
+<div class="form-group">
+    <label for="carrera_id">Carrera</label>
+    <select name="carrera_id" id="carrera_id" class="form-control" required>
+        <option value="">Seleccione una carrera</option>
+        @foreach($carreras as $carrera)
+            <option value="{{ $carrera->id }}">{{ $carrera->nombre }}</option>
+        @endforeach
+    </select>
+</div>
 
-        <!-- Select de Materia (dinámico) -->
-        <div class="form-group">
-            <label for="materia_id">Materia</label>
-            <select name="materia_id" id="materia_id" class="form-control" required>
-                <option value="">Seleccione una materia</option>
-            </select>
+<!-- Select de Materia (dinámico) -->
+<div class="form-group">
+    <label for="materia_id">Materia</label>
+    <select name="materia_id" id="materia_id" class="form-control" required>
+        <option value="">Seleccione una materia</option>
+    </select>
+</div>
+
+<!-- Modal NFC -->
+<div class="modal fade" id="modalNFC" tabindex="-1" role="dialog" aria-labelledby="modalNFCLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content text-center p-4" id="modal-nfc-content">
+            <h5 class="modal-title mb-3" id="modalNFCLabel">Registrar Tarjeta NFC</h5>
+            <p class="mb-3" id="modalNFCMessage">Por favor, acerque la tarjeta al lector...</p>
+            <div class="spinner-border text-primary mb-3" role="status" id="modalNFCSpinner">
+                <span class="sr-only">Leyendo...</span>
+            </div>
+            <div id="modalNFCSuccess" style="display: none;">
+                <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                <p class="text-success">Tarjeta detectada</p>
+            </div>
+            <small class="text-muted" id="modalNFCFooter">Esperando lectura...</small>
         </div>
+    </div>
+</div>
+
 <script>
+    // Cargar materias dinámicamente
     document.addEventListener('DOMContentLoaded', function () {
         const carreraSelect = document.getElementById('carrera_id');
         const materiaSelect = document.getElementById('materia_id');
@@ -70,7 +101,7 @@
                         data.forEach(materia => {
                             const option = document.createElement('option');
                             option.value = materia.id;
-                            option.text = materia.nombre;
+                            option.textContent = materia.nombre;
                             materiaSelect.appendChild(option);
                         });
                     });
@@ -79,20 +110,60 @@
             }
         });
     });
-</script>
 
-
-{{-- Script para capitalizar y restringir a letras --}}
-<script>
+    // Capitalizar y permitir solo letras
     document.querySelectorAll('.capitalize').forEach(input => {
         input.addEventListener('input', function () {
+            if (this.classList.contains('letras')) {
+                this.value = this.value.replace(/[^a-zA-ZÁÉÍÓÚÑáéíóúñ\s]/g, '');
+            }
             this.value = this.value.replace(/\b\w/g, l => l.toUpperCase());
         });
     });
 
-    document.querySelectorAll('.letras').forEach(input => {
-        input.addEventListener('input', function () {
-            this.value = this.value.replace(/[^a-zA-ZÁÉÍÓÚÑáéíóúñ\s]/g, '');
-        });
+    // Registrar UID NFC con animación
+    document.getElementById('btn-obtener-uid').addEventListener('click', function () {
+        $('#modalNFC').modal('show');
+
+        document.getElementById('modalNFCSpinner').style.display = 'block';
+        document.getElementById('modalNFCSuccess').style.display = 'none';
+        document.getElementById('modalNFCMessage').textContent = 'Por favor, acerque la tarjeta al lector...';
+        document.getElementById('modalNFCFooter').textContent = 'Esperando lectura...';
+
+        let intentos = 0;
+        let intervalo = setInterval(() => {
+            fetch('/api/nfc-lectura/ultimo')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.uid_nfc) {
+                        document.getElementById('uid_nfc').value = data.uid_nfc;
+
+                        fetch('/api/nfc-lectura/confirmar', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-API-KEY': 'INCOS2025'
+                            },
+                            body: JSON.stringify({ id: data.id })
+                        });
+
+                        document.getElementById('modalNFCSpinner').style.display = 'none';
+                        document.getElementById('modalNFCSuccess').style.display = 'block';
+                        document.getElementById('modalNFCMessage').textContent = '¡Tarjeta detectada!';
+                        document.getElementById('modalNFCFooter').textContent = '';
+
+                        clearInterval(intervalo);
+                        setTimeout(() => { $('#modalNFC').modal('hide'); }, 1000);
+                    }
+                })
+                .catch(console.error);
+
+            intentos++;
+            if (intentos > 10) {
+                clearInterval(intervalo);
+                $('#modalNFC').modal('hide');
+                alert("No se detectó ninguna tarjeta.");
+            }
+        }, 2000);
     });
 </script>

@@ -37,16 +37,26 @@
             </div>
 
             <!-- UID NFC -->
-            <div class="form-group">
-                <label for="uid_nfc">UID NFC</label>
-                <div class="input-group">
-                    <input type="text" name="uid_nfc" id="uid_nfc" class="form-control" value="{{ old('uid_nfc', $estudiante->uid_nfc ?? '') }}">
-                    <div class="input-group-append">
-                        <button type="button" class="btn btn-primary mt-2" id="btn-obtener-uid">Registrar UID NFC</button>
-                    </div>
-                </div>
-                <small class="form-text text-muted">Presione el botón y pase la tarjeta por el lector.</small>
-            </div>
+<div class="form-group">
+    <label for="uid_nfc">UID NFC</label>
+    <div class="input-group">
+        <input type="text"
+               name="uid_nfc"
+               id="uid_nfc"
+               class="form-control"
+               value="{{ old('uid_nfc', $estudiante->uid_nfc ?? '') }}"
+               readonly>
+        <input type="hidden" id="lectura_id">
+        <div class="input-group-append">
+            <button type="button" class="btn btn-primary" id="btn-obtener-uid">
+                Registrar UID NFC
+            </button>
+        </div>
+    </div>
+    <small id="nfc-status" class="form-text text-muted">
+        Pase la tarjeta por el lector y luego haga clic en “Registrar UID NFC”.
+    </small>
+</div>
 
             <!-- CORREO -->
             <div class="form-group">
@@ -129,66 +139,117 @@
     });
 </script>
 
-<<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8" />
-<title>Registrar UID NFC</title>
-</head>
-<body>
-
-<h2>Registrar UID NFC</h2>
-
-<form id="formRegistrar" onsubmit="return false;">
-  <label for="uid_input">UID NFC:</label>
-  <input type="text" id="uid_input" name="uid_nfc" readonly />
-  <input type="hidden" id="registro_id" />
-  <button id="btnRegistrar">Registrar</button>
-</form>
-
 <script>
-  // Consultar último UID no registrado cada 2 segundos
-  setInterval(() => {
-    fetch('/api/nfc-lectura/ultimo')
-      .then(res => res.json())
-      .then(data => {
-        if (data.uid_nfc) {
-          document.getElementById('uid_input').value = data.uid_nfc;
-          document.getElementById('registro_id').value = data.id;
-        }
-      })
-      .catch(console.error);
-  }, 2000);
+  (function () {
+    const API_KEY = 'INCOS2025'; // o usa tu .env (ver pasos más abajo)
+    const uidInput = document.getElementById('uid_nfc');
+    const lecturaIdInput = document.getElementById('lectura_id');
+    const btnRegistrar = document.getElementById('btn-obtener-uid');
+    const statusEl = document.getElementById('nfc-status');
 
-  // Al hacer clic en "Registrar"
-  document.getElementById('btnRegistrar').addEventListener('click', () => {
-    const id = document.getElementById('registro_id').value;
-    if (!id) {
-      alert('No hay UID para registrar');
-      return;
+    let poller = null;
+    let lastSeenId = null;
+    let isConfirming = false;
+
+    function setStatus(msg) {
+      if (statusEl) statusEl.textContent = msg;
     }
 
-    fetch('/api/nfc-lectura/confirmar', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-API-KEY': 'INCOS2025'
-      },
-      body: JSON.stringify({ id })
-    })
-    .then(res => res.json())
-    .then(data => {
-      alert(data.message);
-      document.getElementById('uid_input').value = '';
-      document.getElementById('registro_id').value = '';
-    })
-    .catch(err => {
-      alert('Error al registrar UID');
-      console.error(err);
-    });
-  });
-</script>
+    async function fetchUltimo() {
+      try {
+        const res = await fetch('/api/nfc-lectura/ultimo', { cache: 'no-store' });
+        const data = await res.json();
 
-</body>
-</html>
+        // Esperamos un objeto tipo { id, uid_nfc } o { id: null, uid_nfc: null }
+        if (data && data.id && data.uid_nfc) {
+          // Evita relanzar la UI si es el mismo id
+          if (data.id !== lastSeenId) {
+            uidInput.value = data.uid_nfc;
+            lecturaIdInput.value = data.id;
+            lastSeenId = data.id;
+            setStatus('Tarjeta detectada: ' + data.uid_nfc + ' (sin confirmar)');
+          }
+        } else {
+          // No hay lectura pendiente
+          if (!isConfirming && !lecturaIdInput.value) {
+            setStatus('Esperando tarjeta…');
+            // No limpiamos uidInput porque podría tener un UID ya asignado manualmente o confirmado
+          }
+        }
+      } catch (e) {
+        console.error('Error al consultar último UID:', e);
+      }
+    }
+
+    function startPolling() {
+      if (poller) return;
+      setStatus('Esperando tarjeta…');
+      poller = setInterval(fetchUltimo, 2000);
+    }
+
+    function stopPolling() {
+      if (poller) {
+        clearInterval(poller);
+        poller = null;
+      }
+    }
+
+    btnRegistrar.addEventListener('click', async () => {
+      const id = lecturaIdInput.value;
+
+      if (!id) {
+        // No hay UID pendiente de confirmación
+        setStatus('No hay UID para registrar. Acerque la tarjeta al lector.');
+        // Forzamos una consulta inmediata por si acaba de pasar la tarjeta
+        fetchUltimo();
+        return;
+      }
+
+      if (isConfirming) return;
+      isConfirming = true;
+      btnRegistrar.disabled = true;
+      setStatus('Confirmando UID…');
+
+      try {
+        const res = await fetch('/api/nfc-lectura/confirmar', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-API-KEY': API_KEY
+          },
+          body: JSON.stringify({ id })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          // Muestra errores del backend
+          const msg = data && data.message ? data.message : 'Error al registrar UID';
+          setStatus(msg);
+          // Opcional: SweetAlert si lo estás usando
+          if (window.Swal) Swal.fire('Error', msg, 'error');
+        } else {
+          // Confirmación OK: dejamos el UID en el input del formulario y limpiamos el id interno
+          setStatus('UID confirmado y listo en el formulario.');
+          lecturaIdInput.value = '';
+          lastSeenId = null;
+
+          if (window.Swal) Swal.fire('¡Listo!', data.message || 'UID confirmado', 'success');
+        }
+      } catch (e) {
+        console.error('Error al confirmar UID:', e);
+        setStatus('Error de red al confirmar UID');
+        if (window.Swal) Swal.fire('Error', 'No se pudo confirmar el UID.', 'error');
+      } finally {
+        isConfirming = false;
+        btnRegistrar.disabled = false;
+      }
+    });
+
+    // Inicia el polling al cargar
+    document.addEventListener('DOMContentLoaded', startPolling);
+    // Limpia al salir
+    window.addEventListener('beforeunload', stopPolling);
+  })();
+</script>
 

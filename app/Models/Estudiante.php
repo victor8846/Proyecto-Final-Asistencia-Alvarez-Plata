@@ -17,7 +17,7 @@ class Estudiante extends Model
         'apellido_materno',
         'ci',
         'email',
-        'uid',
+        'uid_nfc',
         'carrera_id',
         'curso_id',
         'ultimo_lector',

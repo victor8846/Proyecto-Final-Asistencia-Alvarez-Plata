@@ -15,13 +15,13 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        // Alias para CheckRole middleware
+        // Alias para middlewares de rutas
         $middleware->alias([
             'role' => CheckRole::class,
-            'api.key' => \App\Http\Middleware\ApiKeyMiddleware::class,
+            'api.key' => ApiKeyMiddleware::class,  // aquí el alias
         ]);
 
-        // Middleware global para CORS
+        // Middleware global (opcional) para CORS
         $middleware->append(HandleCors::class);
     })
     ->withExceptions(function (Exceptions $exceptions) {

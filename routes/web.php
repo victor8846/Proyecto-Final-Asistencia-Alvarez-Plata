@@ -9,15 +9,13 @@ use App\Http\Controllers\{
     EstudianteController,
     DocenteController,
     AsignacionDocenteController,
-    AsignacionController,
     DashboardController,
     CursoController,
     CarreraController,
     AulaController,
     MateriaController,
-    Api\NfcLecturaController,
-    HorarioController,
-    Admin\TarjetaNfcController
+    HorarioController
+   
 };
 
 // Ruta raíz
@@ -45,14 +43,9 @@ Route::middleware('auth')->group(function () {
         'materias' => MateriaController::class,
         'aulas' => AulaController::class,
         'asistencias' => AsistenciaController::class,
-        'asignaciones' => AsignacionController::class,
         'asignacion-docentes' => AsignacionDocenteController::class,
         'horarios' => HorarioController::class,
-        'tarjetas-nfc' => TarjetaNfcController::class, // Agregado aquí
     ]);
-
-    // Asignación docente actualización (si es especial)
-    Route::put('/asignacion-docentes/{id}', [AsignacionDocenteController::class, 'update'])->name('asignacion-docentes.update');
 
     // Estudiantes: materias asignadas
     Route::get('/estudiantes/{id}/materias', [EstudianteController::class, 'verMateriasAsignadas'])->name('estudiantes.materias');
@@ -76,24 +69,16 @@ Route::middleware('auth')->group(function () {
     // Reportes
     Route::get('/reportes', [ReporteController::class, 'index'])->name('reportes.index');
     Route::get('/reportes/estudiantes-por-carrera', [ReporteController::class, 'resumenPorCarrera'])->name('reportes.estudiantes_por_carrera');
-
-   
 });
 
 // Solo para usuarios con rol admin
 Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::resource('usuarios', UserManagementController::class);
     Route::get('/admin', function () {
-    return 'Bienvenido Administrador';
-})->middleware('role:admin');
-
+        return 'Bienvenido Administrador';
+    });
 });
 
 // Rutas de autenticación
 require __DIR__.'/auth.php';
- // API NFC Lectura
- Route::middleware('api.key')->group(function () {
-    Route::post('/api/nfc-lectura', [NfcLecturaController::class, 'store']);
-    Route::get('/api/nfc-lectura/ultimo', [NfcLecturaController::class, 'ultimo']);
-    Route::post('/api/nfc-lectura/confirmar', [NfcLecturaController::class, 'confirmar']);
-});
+

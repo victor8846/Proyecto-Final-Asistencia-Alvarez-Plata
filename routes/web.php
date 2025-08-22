@@ -1,11 +1,10 @@
 <?php
-
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\{
     ProfileController,
     AsistenciaController,
     ReporteController,
-    UserManagementController,
     EstudianteController,
     DocenteController,
     AsignacionDocenteController,
@@ -14,12 +13,16 @@ use App\Http\Controllers\{
     CarreraController,
     AulaController,
     MateriaController,
-    HorarioController
-   
+    HorarioController,
+    UsuarioController
 };
 
-// Ruta raíz
-Route::get('/', fn() => redirect()->route('login'));
+// Ruta raíz → si está logueado va al dashboard, si no al login
+Route::get('/', function () {
+    return redirect()->route('login');
+});
+//
+Auth::routes(['verify' => true]);
 
 // Dashboard
 Route::get('/dashboard', [DashboardController::class, 'index'])
@@ -29,7 +32,7 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
 // Rutas autenticadas
 Route::middleware('auth')->group(function () {
 
-    // Perfil
+    // Perfil de usuario
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
@@ -48,37 +51,44 @@ Route::middleware('auth')->group(function () {
     ]);
 
     // Estudiantes: materias asignadas
-    Route::get('/estudiantes/{id}/materias', [EstudianteController::class, 'verMateriasAsignadas'])->name('estudiantes.materias');
+    Route::get('/estudiantes/{id}/materias', [EstudianteController::class, 'verMateriasAsignadas'])
+        ->name('estudiantes.materias');
 
     // Materias por carrera
-    Route::get('materias/por-carrera/{carrera_id}', [MateriaController::class, 'porCarrera'])->name('materias.porCarrera');
+    Route::get('materias/por-carrera/{carrera_id}', [MateriaController::class, 'porCarrera'])
+        ->name('materias.porCarrera');
 
     // Cursos por carrera
-    Route::get('/cursos/por-carrera/{id}', [CursoController::class, 'porCarrera'])->name('cursos.porCarrera');
+    Route::get('/cursos/por-carrera/{id}', [CursoController::class, 'porCarrera'])
+        ->name('cursos.porCarrera');
 
     // Horarios personalizados
-    Route::get('/horarios/seleccionar', [HorarioController::class, 'formSeleccion'])->name('horarios.seleccionar');
-    Route::get('/horario/{carrera}/{curso}', [HorarioController::class, 'verHorarioPorCurso'])->name('horarios.ver');
-    Route::get('/horario/{carrera}/{curso}/pdf', [HorarioController::class, 'exportarPDF'])->name('horarios.exportar.pdf');
-    Route::get('/horario/{carrera}/{curso}/excel', [HorarioController::class, 'exportarExcel'])->name('horarios.exportar.excel');
+    Route::get('/horarios/seleccionar', [HorarioController::class, 'formSeleccion'])
+        ->name('horarios.seleccionar');
+    Route::get('/horario/{carrera}/{curso}', [HorarioController::class, 'verHorarioPorCurso'])
+        ->name('horarios.ver');
+    Route::get('/horario/{carrera}/{curso}/pdf', [HorarioController::class, 'exportarPDF'])
+        ->name('horarios.exportar.pdf');
+    Route::get('/horario/{carrera}/{curso}/excel', [HorarioController::class, 'exportarExcel'])
+        ->name('horarios.exportar.excel');
 
     // Exportar materias
-    Route::get('materias/exportar/pdf', [MateriaController::class, 'exportarPDF'])->name('materias.exportar.pdf');
-    Route::get('materias/exportar/excel', [MateriaController::class, 'exportarExcel'])->name('materias.exportar.excel');
+    Route::get('materias/exportar/pdf', [MateriaController::class, 'exportarPDF'])
+        ->name('materias.exportar.pdf');
+    Route::get('materias/exportar/excel', [MateriaController::class, 'exportarExcel'])
+        ->name('materias.exportar.excel');
 
     // Reportes
-    Route::get('/reportes', [ReporteController::class, 'index'])->name('reportes.index');
-    Route::get('/reportes/estudiantes-por-carrera', [ReporteController::class, 'resumenPorCarrera'])->name('reportes.estudiantes_por_carrera');
+    Route::get('/reportes', [ReporteController::class, 'index'])
+        ->name('reportes.index');
+    Route::get('/reportes/estudiantes-por-carrera', [ReporteController::class, 'resumenPorCarrera'])
+        ->name('reportes.estudiantes_por_carrera');
 });
 
-// Solo para usuarios con rol admin
+// Solo para usuarios con rol admin → gestión de usuarios
 Route::middleware(['auth', 'role:admin'])->group(function () {
-    Route::resource('usuarios', UserManagementController::class);
-    Route::get('/admin', function () {
-        return 'Bienvenido Administrador';
-    });
+    Route::resource('usuarios', UsuarioController::class);
 });
 
 // Rutas de autenticación
 require __DIR__.'/auth.php';
-

@@ -6,6 +6,7 @@ use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\HandleCors;
 use App\Http\Middleware\CheckRole;
 use App\Http\Middleware\ApiKeyMiddleware;
+use App\Http\Middleware\RoleMiddleware;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -17,8 +18,9 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         // Alias para middlewares de rutas
         $middleware->alias([
-            'role' => CheckRole::class,
-            'api.key' => ApiKeyMiddleware::class,  // aquí el alias
+            'role'    => RoleMiddleware::class,   // Usa este si quieres roles
+            'checkrole' => CheckRole::class,      // Si también usas CheckRole
+            'api.key' => ApiKeyMiddleware::class, // Para la API Key
         ]);
 
         // Middleware global (opcional) para CORS

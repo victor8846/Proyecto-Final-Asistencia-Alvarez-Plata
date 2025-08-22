@@ -2,73 +2,48 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
-use Illuminate\Http\Request;
+use Illuminate\Http\Request;   // 👈 falta importar Request
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rules\Password;
+use App\Models\User;          // 👈 falta importar tu modelo User
 
 class UserManagementController extends Controller
 {
-    public function index()
-    {
-        $usuarios = User::all();
-        return view('usuarios.index', compact('usuarios'));
-    }
-
-    public function create()
-    {
-        return view('usuarios.create');
-    }
-
     public function store(Request $request)
     {
         $request->validate([
             'name' => 'required|string|max:255',
+            'apellido_paterno' => 'required|string|max:255',
+            'apellido_materno' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
-            'password' => 'required|string|min:8',
-            'role' => 'required|in:admin,user'
-            
+            'role_id' => 'required|exists:roles,id',
+            'password' => [
+                'required',
+                'confirmed',
+                Password::min(8)   // mínimo 8 caracteres
+                    ->letters()    // debe incluir letras
+                    ->numbers()    // debe incluir números
+                    ->symbols()    // debe incluir símbolos
+            ],
         ]);
 
-        User::create([
+        $user = User::create([
             'name' => $request->name,
+            'apellido_paterno' => $request->apellido_paterno,
+            'apellido_materno' => $request->apellido_materno,
             'email' => $request->email,
+            'role_id' => $request->role_id,
             'password' => Hash::make($request->password),
-            'role' => $request->role
         ]);
 
         return redirect()->route('usuarios.index')->with('success', 'Usuario creado correctamente.');
+        // Enviar correo de verificación
+        $user->sendEmailVerificationNotification();
+
+        return redirect()->route('usuarios.index')
+            ->with('success', 'Usuario creado correctamente. Se envió un correo de verificación.');
     }
 
-    public function edit(User $usuario)
-    {
-        return view('usuarios.edit', compact('usuario'));
-    }
-
-   public function update(Request $request, User $usuario)
-{
-    $request->validate([
-        'name' => 'required|string|max:255',
-        'email' => 'required|email|unique:users,email,' . $usuario->id,
-        'password' => 'nullable|string|min:8', // ✅ no es obligatorio
-        'role' => 'required|in:admin,user'
-    ]);
-
-    $usuario->name = $request->name;
-    $usuario->email = $request->email;
-    $usuario->role = $request->role;
-
-    if (!empty($request->password)) {
-        $usuario->password = Hash::make($request->password);
-    }
-
-    $usuario->save();
-
-    return redirect()->route('usuarios.index')->with('success', 'Usuario actualizado correctamente.');
+    
 }
-
-    public function destroy(User $usuario)
-    {
-        $usuario->delete();
-        return redirect()->route('usuarios.index')->with('success', 'Usuario eliminado correctamente.');
-    }
-}
+            

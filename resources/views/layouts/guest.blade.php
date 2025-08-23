@@ -7,19 +7,16 @@
 
     <title>{{ config('app.name', 'Laravel') }}</title>
 
-    <!-- Fuentes -->
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-    <!-- Estilos y scripts -->
+    <!-- Scripts and Styles -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="font-sans text-gray-900 antialiased">
-
-    <!-- Fondo con gradiente -->
-    <div class="min-h-screen flex items-center justify-center pt-6 sm:pt-0 bg-gradient-to-br from-blue-100 via-white to-blue-50">
-        <div class="container mx-auto flex flex-col lg:flex-row items-center justify-center px-8 py-12" style="gap:5cm;">
+    {{ $slot }}
             
             <!-- Logo -->
             <div class="hidden lg:block w-full max-w-2xl">

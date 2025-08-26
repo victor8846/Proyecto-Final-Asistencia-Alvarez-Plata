@@ -20,7 +20,7 @@ class Estudiante extends Model
         'uid_nfc',
         'carrera_id',
         'curso_id',
-        'ultimo_lector',
+        'lector',
         'fecha_registro'
     ];
 
@@ -37,11 +37,7 @@ class Estudiante extends Model
     }
 
     // Relación con tarjeta NFC si la tienes
-    public function tarjetaNfc()
-    {
-        return $this->hasOne(TarjetaNfc::class);
-    }
-
+   
     // Atributo personalizado para obtener el nombre completo
     public function getNombreCompletoAttribute()
     {

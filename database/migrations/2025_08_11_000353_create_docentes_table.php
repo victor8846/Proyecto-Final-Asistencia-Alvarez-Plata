@@ -18,8 +18,8 @@ return new class extends Migration {
             $table->string('ultimo_lector')->nullable();
             $table->timestamp('fecha_registro')->nullable();
             // Claves foráneas
-            $table->foreignId('materia_id')->constrained('materias')->onDelete('cascade');
-            $table->foreignId('carrera_id')->constrained('carreras')->onDelete('cascade');
+            $table->unsignedBigInteger('materia_id')->nullable();
+            $table->unsignedBigInteger('carrera_id')->nullable();
 
             $table->timestamps();
         });

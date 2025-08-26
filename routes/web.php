@@ -30,7 +30,7 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
     ->name('dashboard');
 
 // Rutas autenticadas
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'password.change'])->group(function () {
 
     // Perfil de usuario
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -86,8 +86,14 @@ Route::middleware('auth')->group(function () {
 });
 
 // Solo para usuarios con rol admin → gestión de usuarios
-Route::middleware(['auth', 'role:admin'])->group(function () {
-    Route::resource('usuarios', UsuarioController::class);
+Route::middleware(['auth', 'password.change', 'role:admin'])->group(function () {
+  Route::resource('usuarios', UsuarioController::class);
+});
+
+// Rutas de cambio de contraseña
+Route::middleware('auth')->group(function () {
+    Route::get('/change-password', [App\Http\Controllers\PasswordChangeController::class, 'showChangeForm'])->name('password.change');
+    Route::post('/change-password', [App\Http\Controllers\PasswordChangeController::class, 'change']);
 });
 
 // Rutas de autenticación

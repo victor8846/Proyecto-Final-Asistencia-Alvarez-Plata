@@ -16,21 +16,10 @@ return new class extends Migration
             $table->string('name')->unique(); // admin, user, docente, estudiante
             $table->timestamps();
         });
-
-        // Agregar la relación role_id a users
-        Schema::table('users', function (Blueprint $table) {
-            $table->foreignId('role_id')->nullable()->constrained('roles');
-            $table->dropColumn('role'); // eliminamos la columna string antigua
-        });
     }
 
     public function down(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->dropConstrainedForeignId('role_id');
-            $table->string('role')->default('user');
-        });
-
         Schema::dropIfExists('roles');
     }
 };

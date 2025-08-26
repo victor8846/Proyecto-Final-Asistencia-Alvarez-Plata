@@ -11,7 +11,7 @@ class Docente extends Model
 
      protected $table = 'docentes';
 
-    protected $fillable = ['nombre', 'apellido_paterno', 'apellido_materno', 'ci', 'email', 'materia_id', 'carrera_id','ultimo_lector', 'fecha_registro'];
+    protected $fillable = ['nombre', 'apellido_paterno', 'apellido_materno', 'ci', 'email', 'materia_id', 'carrera_id', 'lector', 'fecha_registro'];
 
     public function materia()
     {
@@ -29,13 +29,6 @@ class Docente extends Model
     }
 
     // Relación uno a muchos con las asignaciones
-    public function asignaciones()
-    {
-        return $this->hasMany(DocenteMateriaCurso::class);
-    }
-    public function tarjetaNfc()
-{
-    return $this->hasOne(\App\Models\TarjetaNfc::class);
-}
+  
     
 }

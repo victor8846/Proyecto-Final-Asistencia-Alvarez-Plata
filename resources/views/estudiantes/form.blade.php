@@ -157,7 +157,12 @@
 
     async function fetchUltimo() {
       try {
-        const res = await fetch('/api/nfc-lectura/ultimo', { cache: 'no-store' });
+        const res = await fetch('/api/nfc-lectura/ultimo', { 
+          cache: 'no-store',
+          headers: {
+            'X-API-KEY': API_KEY
+          }
+        });
         const data = await res.json();
 
         // Esperamos un objeto tipo { id, uid_nfc } o { id: null, uid_nfc: null }
@@ -168,6 +173,15 @@
             lecturaIdInput.value = data.id;
             lastSeenId = data.id;
             setStatus('Tarjeta detectada: ' + data.uid_nfc + ' (sin confirmar)');
+            // Notificar al usuario
+            if (window.Swal) {
+              Swal.fire({
+                title: '¡Tarjeta detectada!',
+                text: 'Se ha detectado una tarjeta NFC. Haga clic en "Registrar UID NFC" para confirmar.',
+                icon: 'info',
+                confirmButtonText: 'OK'
+              });
+            }
           }
         } else {
           // No hay lectura pendiente
@@ -233,8 +247,18 @@
           setStatus('UID confirmado y listo en el formulario.');
           lecturaIdInput.value = '';
           lastSeenId = null;
+          btnRegistrar.textContent = 'UID Confirmado';
+          btnRegistrar.classList.remove('btn-primary');
+          btnRegistrar.classList.add('btn-success');
 
-          if (window.Swal) Swal.fire('¡Listo!', data.message || 'UID confirmado', 'success');
+          if (window.Swal) {
+            Swal.fire({
+              title: '¡UID Confirmado!',
+              text: 'El UID de la tarjeta NFC ha sido confirmado. Puede continuar con el registro.',
+              icon: 'success',
+              confirmButtonText: 'Continuar'
+            });
+          }
         }
       } catch (e) {
         console.error('Error al confirmar UID:', e);

@@ -6,6 +6,8 @@ use App\Models\User;
 use App\Models\Role;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use App\Services\PasswordService;
+use App\Notifications\NewUserCredentials;
 
 class UsuarioController extends Controller
 {
@@ -29,19 +31,30 @@ class UsuarioController extends Controller
             'apellido_materno' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
             'role_id' => 'required|exists:roles,id',
-            'password' => 'required|confirmed|min:6',
         ]);
 
-        User::create([
+        $password = PasswordService::generateRandomPassword();
+        
+        $user = User::create([
             'name' => $request->name,
             'apellido_paterno' => $request->apellido_paterno,
             'apellido_materno' => $request->apellido_materno,
             'email' => $request->email,
             'role_id' => $request->role_id,
-            'password' => Hash::make($request->password),
+            'password' => Hash::make($password),
+            'must_change_password' => true,
         ]);
 
-        return redirect()->route('usuarios.index')->with('success', 'Usuario creado correctamente');
+        try {
+            // Enviar correo con las credenciales
+            $user->notify(new NewUserCredentials($password));
+
+            return redirect()->route('usuarios.index')
+                ->with('success', "Usuario {$user->name} creado exitosamente. La contraseña ha sido enviada al correo {$user->email}");
+        } catch (\Exception $e) {
+            return redirect()->route('usuarios.index')
+                ->with('warning', "Usuario creado, pero hubo un problema al enviar el correo. Por favor, intente regenerar la contraseña.");
+        }
     }
 
     public function edit(User $usuario)
@@ -61,21 +74,36 @@ class UsuarioController extends Controller
             'password' => 'nullable|confirmed|min:6',
         ]);
 
-        $usuario->update([
-            'name' => $request->name,
-            'apellido_paterno' => $request->apellido_paterno,
-            'apellido_materno' => $request->apellido_materno,
-            'email' => $request->email,
-            'role_id' => $request->role_id,
-            'password' => $request->password ? Hash::make($request->password) : $usuario->password,
-        ]);
+        try {
+            $usuario->update([
+                'name' => $request->name,
+                'apellido_paterno' => $request->apellido_paterno,
+                'apellido_materno' => $request->apellido_materno,
+                'email' => $request->email,
+                'role_id' => $request->role_id,
+                'password' => $request->password ? Hash::make($request->password) : $usuario->password,
+            ]);
 
-        return redirect()->route('usuarios.index')->with('success', 'Usuario actualizado correctamente');
+            $nombreCompleto = "{$usuario->name} {$usuario->apellido_paterno} {$usuario->apellido_materno}";
+            return redirect()->route('usuarios.index')
+                ->with('success', "Usuario {$nombreCompleto} actualizado exitosamente");
+        } catch (\Exception $e) {
+            return redirect()->route('usuarios.index')
+                ->with('error', 'Hubo un error al actualizar el usuario. Por favor, intente nuevamente.');
+        }
     }
 
     public function destroy(User $usuario)
     {
-        $usuario->delete();
-        return redirect()->route('usuarios.index')->with('success', 'Usuario eliminado correctamente');
+        try {
+            $nombreCompleto = "{$usuario->name} {$usuario->apellido_paterno} {$usuario->apellido_materno}";
+            $usuario->delete();
+            
+            return redirect()->route('usuarios.index')
+                ->with('success', "Usuario {$nombreCompleto} eliminado exitosamente");
+        } catch (\Exception $e) {
+            return redirect()->route('usuarios.index')
+                ->with('error', 'Hubo un error al eliminar el usuario. Por favor, intente nuevamente.');
+        }
     }
 }

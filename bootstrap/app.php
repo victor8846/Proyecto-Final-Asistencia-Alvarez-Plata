@@ -7,6 +7,7 @@ use Illuminate\Http\Middleware\HandleCors;
 use App\Http\Middleware\CheckRole;
 use App\Http\Middleware\ApiKeyMiddleware;
 use App\Http\Middleware\RoleMiddleware;
+use App\Http\Middleware\CheckPasswordChange;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -21,10 +22,12 @@ return Application::configure(basePath: dirname(__DIR__))
             'role'    => RoleMiddleware::class,   // Usa este si quieres roles
             'checkrole' => CheckRole::class,      // Si también usas CheckRole
             'api.key' => ApiKeyMiddleware::class, // Para la API Key
+            'password.change' => CheckPasswordChange::class, // Para verificar cambio de contraseña
         ]);
 
-        // Middleware global (opcional) para CORS
+        // Middleware global para CORS
         $middleware->append(HandleCors::class);
+        $middleware->append(\App\Http\Middleware\Cors::class);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

@@ -10,10 +10,10 @@ class CreateAsistenciasTable extends Migration
     {
         Schema::create('asistencias', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('estudiante_id')->constrained('estudiantes')->onDelete('cascade');
-            $table->foreignId('materia_id')->constrained('materias')->onDelete('cascade');
-            $table->foreignId('curso_id')->constrained('cursos')->onDelete('cascade');
-            $table->foreignId('carrera_id')->constrained('carreras')->onDelete('cascade');
+            $table->unsignedBigInteger('estudiante_id')->nullable();
+            $table->unsignedBigInteger('materia_id')->nullable();
+            $table->unsignedBigInteger('curso_id')->nullable();
+            $table->unsignedBigInteger('carrera_id')->nullable();
             $table->date('fecha');
             $table->time('hora_ingreso')->nullable();
             $table->time('hora_salida')->nullable();

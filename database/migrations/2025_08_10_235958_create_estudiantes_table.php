@@ -20,8 +20,8 @@ class CreateEstudiantesTable extends Migration
             $table->string('email', 100)->nullable();
 
             // Claves foráneas
-            $table->foreignId('carrera_id')->constrained('carreras')->onDelete('cascade');
-            $table->foreignId('curso_id')->nullable()->constrained('cursos')->onDelete('cascade');
+            $table->unsignedBigInteger('carrera_id')->nullable();
+            $table->unsignedBigInteger('curso_id')->nullable();
 
             $table->timestamps();
         });

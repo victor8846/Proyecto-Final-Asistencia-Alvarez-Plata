@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id(); // ID autoincremental
             $table->string('nombre', 100); // Nombre del curso
             $table->string('paralelo', 100)->nullable(); 
-            $table->foreignId('carrera_id')->constrained('carreras')->onDelete('cascade'); // clave foránea carrera_id
+            $table->unsignedBigInteger('carrera_id')->nullable(); // clave foránea carrera_id
             $table->timestamps();
         });
     }

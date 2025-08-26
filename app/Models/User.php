@@ -24,6 +24,8 @@ class User extends Authenticatable implements MustVerifyEmail
         'email',
         'role_id',
         'password',
+        'must_change_password',
+        'password_changed_at',
     ];
 
     /**
@@ -46,6 +48,8 @@ class User extends Authenticatable implements MustVerifyEmail
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'password_changed_at' => 'datetime',
+            'must_change_password' => 'boolean',
         ];
     }
     public function role()

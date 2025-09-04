@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Docente;
 use App\Models\Carrera;
 use App\Models\Materia;
+use Illuminate\Validation\ValidationException;
 
 class DocenteController extends Controller
 {
@@ -13,42 +14,30 @@ class DocenteController extends Controller
     {
         $query = Docente::query();
 
-        // Filtrado por nombre (busca en nombre completo)
         if ($request->filled('nombre')) {
             $query->where('nombre', 'like', '%' . $request->nombre . '%');
         }
 
-        // Filtrado por carrera
         if ($request->filled('carrera')) {
             $query->where('carrera_id', $request->carrera);
         }
 
-        // Filtrado por materia (relación)
         if ($request->filled('materia')) {
             $query->whereHas('materia', function ($q) use ($request) {
                 $q->where('nombre', 'like', '%' . $request->materia . '%');
             });
         }
 
-        // Filtrado por docente_id (select)
         if ($request->filled('docente_id')) {
             $query->where('id', $request->docente_id);
         }
 
-        // Obtiene paginados los docentes filtrados
         $docentes = $query->paginate(10)->withQueryString();
-
-        // Para llenar el select de docentes y carreras
         $docentesList = Docente::all();
         $carreras = Carrera::all();
         $materias = Materia::all();
 
-        return view('docentes.index', [
-            'docentes' => $docentes,
-            'docentesList' => $docentesList,
-            'carreras' => $carreras,
-            'materias' => $materias,
-        ]);
+        return view('docentes.index', compact('docentes', 'docentesList', 'carreras', 'materias'));
     }
 
     public function create()
@@ -61,19 +50,36 @@ class DocenteController extends Controller
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'nombre' => 'required',
-            'apellido_paterno' => 'required',
-            'apellido_materno' => 'required',
-            'ci' => 'required|unique:docentes,ci',
-            'email' => 'nullable|email',
-            'materia_id' => 'required|exists:materias,id',
-            'carrera_id' => 'required|exists:carreras,id',
-        ]);
+        try {
+            $validated = $request->validate([
+                'nombre' => 'required',
+                'apellido_paterno' => 'required',
+                'apellido_materno' => 'required',
+                'ci' => 'required|unique:docentes,ci',
+                'email' => 'nullable|email|unique:docentes,email',
+                'materia_id' => 'required|exists:materias,id',
+                'carrera_id' => 'required|exists:carreras,id',
+            ], [
+                'nombre.required' => 'El nombre del docente es obligatorio',
+                'apellido_paterno.required' => 'El apellido paterno es obligatorio',
+                'apellido_materno.required' => 'El apellido materno es obligatorio',
+                'ci.required' => 'El CI es obligatorio',
+                'ci.unique' => 'Ya existe un docente registrado con este CI',
+                'email.unique' => 'Ya existe un docente registrado con este correo electrónico',
+                'email.email' => 'El formato del correo electrónico no es válido',
+                'materia_id.required' => 'Debe seleccionar una materia',
+                'carrera_id.required' => 'Debe seleccionar una carrera'
+            ]);
 
-        Docente::create($validated);
-
-        return redirect()->route('docentes.index')->with('success', 'Docente creado con éxito.');
+            Docente::create($validated);
+            return redirect()->route('docentes.index')
+                ->with('success', 'Docente registrado correctamente.');
+        } catch (ValidationException $e) {
+            return back()
+                ->withErrors($e->validator)
+                ->withInput()
+                ->with('error', 'No se pudo registrar el docente. Por favor, revise los errores.');
+        }
     }
 
     public function edit(Docente $docente)
@@ -85,24 +91,42 @@ class DocenteController extends Controller
 
     public function update(Request $request, Docente $docente)
     {
-        $request->validate([
-            'nombre' => 'required|string|max:100',
-            'apellido_paterno' => 'required|string|max:100',
-            'apellido_materno' => 'required|string|max:100',
-            'ci' => 'required|string|max:20|unique:docentes,ci,' . $docente->id,
-            'email' => 'nullable|email|max:100',
-            'materia_id' => 'required|exists:materias,id',
-            'carrera_id' => 'required|exists:carreras,id',
-        ]);
+        try {
+            $validated = $request->validate([
+                'nombre' => 'required|string|max:100',
+                'apellido_paterno' => 'required|string|max:100',
+                'apellido_materno' => 'required|string|max:100',
+                'ci' => 'required|string|max:20|unique:docentes,ci,' . $docente->id,
+                'email' => 'nullable|email|max:100|unique:docentes,email,' . $docente->id,
+                'materia_id' => 'required|exists:materias,id',
+                'carrera_id' => 'required|exists:carreras,id',
+            ], [
+                'nombre.required' => 'El nombre del docente es obligatorio',
+                'apellido_paterno.required' => 'El apellido paterno es obligatorio',
+                'apellido_materno.required' => 'El apellido materno es obligatorio',
+                'ci.required' => 'El CI es obligatorio',
+                'ci.unique' => 'Ya existe otro docente registrado con este CI',
+                'email.unique' => 'Ya existe otro docente registrado con este correo electrónico',
+                'email.email' => 'El formato del correo electrónico no es válido',
+                'materia_id.required' => 'Debe seleccionar una materia',
+                'carrera_id.required' => 'Debe seleccionar una carrera'
+            ]);
 
-        $docente->update($request->all());
-
-        return redirect()->route('docentes.index')->with('success', 'Docente actualizado correctamente.');
+            $docente->update($validated);
+            return redirect()->route('docentes.index')
+                ->with('success', 'Docente actualizado correctamente.');
+        } catch (ValidationException $e) {
+            return back()
+                ->withErrors($e->validator)
+                ->withInput()
+                ->with('error', 'No se pudo actualizar el docente. Por favor, revise los errores.');
+        }
     }
 
     public function destroy(Docente $docente)
     {
         $docente->delete();
-        return redirect()->route('docentes.index')->with('success', 'Docente eliminado correctamente.');
+        return redirect()->route('docentes.index')
+            ->with('success', 'Docente eliminado correctamente.');
     }
 }

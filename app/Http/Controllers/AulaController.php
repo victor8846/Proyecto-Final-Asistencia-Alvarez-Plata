@@ -29,8 +29,23 @@ class AulaController extends Controller
      */
     public function store(Request $request)
     {
-        Aula::create($request->all());
-        return redirect()->route('aulas.index')->with('success', 'Aula registrada correctamente');
+        try {
+            // Validar que el nombre del aula sea único
+            $request->validate([
+                'nombre' => 'required|unique:aulas,nombre'
+            ], [
+                'nombre.required' => 'El nombre del aula es obligatorio',
+                'nombre.unique' => 'El aula ya existe en el sistema. Por favor, ingrese un nombre diferente.'
+            ]);
+
+            Aula::create($request->all());
+            return redirect()->route('aulas.index')
+                ->with('success', 'Aula registrada correctamente');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return back()->withErrors($e->validator)
+                        ->withInput()
+                        ->with('error', 'No se pudo registrar el aula. Por favor, revise los errores.');
+        }
     }
 
     /**
@@ -47,9 +62,25 @@ class AulaController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        $aula = Aula::findOrFail($id);  // <== Obtener el aula antes de actualizar
-        $aula->update($request->all());
-        return redirect()->route('aulas.index')->with('success', 'Aula actualizada correctamente');
+        try {
+            $aula = Aula::findOrFail($id);
+            
+            // Validar que el nombre del aula sea único excepto para el registro actual
+            $request->validate([
+                'nombre' => 'required|unique:aulas,nombre,' . $id
+            ], [
+                'nombre.required' => 'El nombre del aula es obligatorio',
+                'nombre.unique' => 'Ya existe otra aula con este nombre. Por favor, elija un nombre diferente.'
+            ]);
+
+            $aula->update($request->all());
+            return redirect()->route('aulas.index')
+                ->with('success', 'Aula actualizada correctamente');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return back()->withErrors($e->validator)
+                        ->withInput()
+                        ->with('error', 'No se pudo actualizar el aula. Por favor, revise los errores.');
+        }
     }
 
     /**

@@ -9,13 +9,15 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    public function up(): void
-    {
-        Schema::table('users', function (Blueprint $table) {
+    public function up()
+{
+    Schema::table('users', function (Blueprint $table) {
+        if (!Schema::hasColumn('users', 'must_change_password')) {
             $table->boolean('must_change_password')->default(true)->after('password');
-            $table->timestamp('password_changed_at')->nullable()->after('must_change_password');
-        });
-    }
+        }
+    });
+}
+
 
     /**
      * Reverse the migrations.
